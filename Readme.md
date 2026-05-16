@@ -3,7 +3,7 @@
 ## Team Information
 
 - Repository: `mpi-word-counting-lab`
-- Student(s): Zahir Acosta De La Asunción, Alejandro David Alonso Duran, Maria Isabel Gutierrez Gonzalez, Lucia Isabel Montoya Orozco 
+- Students: Zahir Acosta De La Asunción, Alejandro David Alonso Durán, María Isabel Gutiérrez González, and Lucía Isabel Montoya Orozco
 - Course: Estructura del Computador 2
 - Date: May 2026
 
