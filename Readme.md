@@ -3,8 +3,8 @@
 ## Team Information
 
 - Repository: `mpi-word-counting-lab`
-- Student(s): **[Add team member names here]**
-- Course/Lab: **Parallel Word Counting in a Text Corpus with MPI**
+- Student(s): Zahir Acosta De La Asunción, Alejandro David Alonso Duran, Maria Isabel Gutierrez Gonzalez, Lucia Isabel Montoya Orozco 
+- Course: Estructura del Computador 2
 - Date: May 2026
 
 ## Problem Description
