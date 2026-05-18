@@ -2,3 +2,4 @@ dataset/
 spanish_words.info
 __pycache__/
 *.pyc
+outputs/

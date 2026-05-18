@@ -108,6 +108,7 @@ if rank == 0:
     print("Total tokens read:", sum(all_tokens))
     print("Total occurrences found:", sum(global_counts.values()))
     print(f"Total execution time: {total_time:.6f} seconds")
+    print(f"Execution time: {total_time:.6f} seconds")
 
     print("\nTop 10 palabras de consulta en el corpus:")
     for word, count in global_counts.most_common(10):

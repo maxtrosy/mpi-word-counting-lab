@@ -34,7 +34,7 @@ Readme.md
 .gitignore
 ```
 
-The generated `dataset/` folder and the generated CSV files are not included in the repository because they can be reproduced by running the generator and the implementations.
+The generated `dataset/` folder and the generated CSV files are not required to run the repository because they can be reproduced by running the generator and the implementations. The experimental raw outputs may be stored in `outputs/` as evidence of the execution.
 
 ## Environment and Execution Instructions
 
@@ -68,7 +68,7 @@ The container reported:
 7 available cores
 ```
 
-Since the lab required testing with 8 MPI processes, the 8-process executions were run with `--oversubscribe`.
+Since the lab required testing with 8 MPI processes, the 8-process executions were run with `--oversubscribe`. This does not create 8 physical cores; it allows Open MPI to launch 8 processes even though the container reported only 7 available slots.
 
 Example command for `mpi1.py`:
 
@@ -115,7 +115,7 @@ The provided sequential implementation, `baseline_secuencial.py`, was used as th
 ### Sequential Baseline Timing
 
 ```text
-Tseq = 30.263341 seconds
+Tseq = 26.876594 seconds
 ```
 
 ### Sequential Output
@@ -162,29 +162,55 @@ This version distributes the same number of files per process, but it does not c
 
 | Processes | Run 1 (s) | Run 2 (s) | Run 3 (s) | Average Time (s) | Speedup | Efficiency |
 |---:|---:|---:|---:|---:|---:|---:|
-| 1 | 28.583822 | 28.116389 | 27.816959 | 28.172390 | 1.07 | 1.07 |
-| 2 | 14.526825 | 14.191730 | 14.621213 | 14.446589 | 2.09 | 1.05 |
-| 4 | 9.522224 | 10.725020 | 10.626242 | 10.291162 | 2.94 | 0.74 |
-| 8 | 8.481068 | 8.422153 | 8.560188 | 8.487803 | 3.57 | 0.45 |
+| 1 | 28.079709 | 25.431295 | 26.874339 | 26.795114 | 1.00 | 1.00 |
+| 2 | 14.530604 | 14.255729 | 14.553288 | 14.446540 | 1.86 | 0.93 |
+| 4 | 9.577585 | 11.229220 | 10.660970 | 10.489258 | 2.56 | 0.64 |
+| 8 | 8.943007 | 8.288741 | 8.750497 | 8.660748 | 3.10 | 0.39 |
+
+### Representative Local Processing Times for MPI Version 1
+
+The following tables correspond to Run 1 for each process configuration. They are useful as evidence for load-balance analysis.
+
+#### MPI1 with 1 process - Run 1
+
+| Rank | Assigned Files | Local Tokens | Local Time (s) |
+|---:|---:|---:|---:|
+| 0 | 3000 | 44951458 | 28.043346 |
+
+#### MPI1 with 2 processes - Run 1
+
+| Rank | Assigned Files | Local Tokens | Local Time (s) |
+|---:|---:|---:|---:|
+| 0 | 1500 | 22362079 | 14.493528 |
+| 1 | 1500 | 22589379 | 14.151747 |
+
+#### MPI1 with 4 processes - Run 1
+
+| Rank | Assigned Files | Local Tokens | Local Time (s) |
+|---:|---:|---:|---:|
+| 0 | 750 | 10788141 | 9.168005 |
+| 1 | 750 | 11064823 | 9.109573 |
+| 2 | 750 | 11573938 | 9.546983 |
+| 3 | 750 | 11524556 | 9.551571 |
+
+#### MPI1 with 8 processes - Run 1
+
+| Rank | Assigned Files | Local Tokens | Local Time (s) |
+|---:|---:|---:|---:|
+| 0 | 375 | 5018405 | 7.785249 |
+| 1 | 375 | 5150686 | 7.975957 |
+| 2 | 375 | 6161885 | 8.823153 |
+| 3 | 375 | 5488544 | 8.171050 |
+| 4 | 375 | 5769736 | 8.444104 |
+| 5 | 375 | 5914137 | 8.539361 |
+| 6 | 375 | 5412053 | 8.303817 |
+| 7 | 375 | 6036012 | 8.743710 |
 
 ## Load Imbalance Evidence in MPI Version 1
 
 The first MPI version assigns the same number of files to each process, but this does not guarantee the same workload. Some files contain more tokens than others, so processes may receive the same number of files while processing different amounts of text.
 
-For example, with 8 MPI processes, each rank received 375 files, but the number of tokens was different:
-
-| Rank | Assigned Files | Local Tokens | Local Time (s) |
-|---:|---:|---:|---:|
-| 0 | 375 | 5,018,405 | 7.319489 |
-| 1 | 375 | 5,150,686 | 7.539032 |
-| 2 | 375 | 6,161,885 | 8.401884 |
-| 3 | 375 | 5,488,544 | 7.826678 |
-| 4 | 375 | 5,769,736 | 8.080510 |
-| 5 | 375 | 5,914,137 | 8.207266 |
-| 6 | 375 | 5,412,053 | 7.836693 |
-| 7 | 375 | 6,036,012 | 8.249075 |
-
-This shows that static distribution by number of files caused load imbalance. Rank 2 processed significantly more tokens than rank 0, even though both received the same number of files.
+The local-time tables show that this imbalance appears in different process configurations. For example, with 8 MPI processes, each rank received 375 files, but the number of tokens was different. Rank 0 processed 5,018,405 tokens, while rank 2 processed 6,161,885 tokens. This shows that static distribution by number of files caused load imbalance because the number of assigned files was equal, but the real amount of text processed was not.
 
 ## MPI Version 2: Load-Balancing Improvement
 
@@ -208,25 +234,53 @@ This version attempts to balance the work using file size as an approximation of
 
 | Processes | Run 1 (s) | Run 2 (s) | Run 3 (s) | Average Time (s) | Speedup | Efficiency |
 |---:|---:|---:|---:|---:|---:|---:|
-| 1 | 34.011210 | 32.186914 | 31.316714 | 32.504946 | 0.93 | 0.93 |
-| 2 | 20.668290 | 19.151954 | 18.878210 | 19.566151 | 1.55 | 0.77 |
-| 4 | 13.557397 | 14.197596 | 15.780294 | 14.511762 | 2.09 | 0.52 |
-| 8 | 11.481889 | 14.184700 | 12.191272 | 12.619287 | 2.40 | 0.30 |
+| 1 | 30.683933 | 30.163059 | 29.160260 | 30.002417 | 0.90 | 0.90 |
+| 2 | 17.125671 | 16.993506 | 17.272314 | 17.130497 | 1.57 | 0.78 |
+| 4 | 12.776809 | 12.783447 | 12.526671 | 12.695642 | 2.12 | 0.53 |
+| 8 | 11.567369 | 11.246532 | 12.198686 | 11.670862 | 2.30 | 0.29 |
 
-### Load Balance Evidence in MPI Version 2
+### Representative Local Processing Times for MPI Version 2
 
-With 8 MPI processes, `mpi2.py` produced a much more balanced distribution by estimated file size:
+The following tables correspond to Run 1 for each process configuration. In this version, file size was used as an estimated workload measure to reduce imbalance.
+
+#### MPI2 with 1 process - Run 1
 
 | Rank | Assigned Files | Estimated Size | Local Tokens | Local Time (s) |
 |---:|---:|---:|---:|---:|
-| 0 | 376 | 34,381,755 | 5,620,840 | 7.400400 |
-| 1 | 375 | 34,381,731 | 5,619,966 | 7.321078 |
-| 2 | 374 | 34,381,770 | 5,617,956 | 7.639206 |
-| 3 | 375 | 34,381,802 | 5,618,676 | 7.585041 |
-| 4 | 375 | 34,381,787 | 5,618,493 | 7.376246 |
-| 5 | 375 | 34,381,696 | 5,618,576 | 7.557116 |
-| 6 | 375 | 34,381,794 | 5,618,127 | 7.511503 |
-| 7 | 375 | 34,381,724 | 5,618,824 | 7.561180 |
+| 0 | 3000 | 275054059 | 44951458 | 24.940198 |
+
+#### MPI2 with 2 processes - Run 1
+
+| Rank | Assigned Files | Estimated Size | Local Tokens | Local Time (s) |
+|---:|---:|---:|---:|---:|
+| 0 | 1499 | 137527044 | 22474059 | 12.576859 |
+| 1 | 1501 | 137527015 | 22477399 | 12.880224 |
+
+#### MPI2 with 4 processes - Run 1
+
+| Rank | Assigned Files | Estimated Size | Local Tokens | Local Time (s) |
+|---:|---:|---:|---:|---:|
+| 0 | 750 | 68763511 | 11239261 | 8.336632 |
+| 1 | 750 | 68763524 | 11237297 | 8.289663 |
+| 2 | 751 | 68763489 | 11236601 | 8.397432 |
+| 3 | 749 | 68763535 | 11238299 | 8.306593 |
+
+#### MPI2 with 8 processes - Run 1
+
+| Rank | Assigned Files | Estimated Size | Local Tokens | Local Time (s) |
+|---:|---:|---:|---:|---:|
+| 0 | 376 | 34381755 | 5620840 | 7.050991 |
+| 1 | 375 | 34381731 | 5619966 | 7.305400 |
+| 2 | 374 | 34381770 | 5617956 | 7.296909 |
+| 3 | 375 | 34381802 | 5618676 | 7.363406 |
+| 4 | 375 | 34381787 | 5618493 | 6.987812 |
+| 5 | 375 | 34381696 | 5618576 | 7.466833 |
+| 6 | 375 | 34381794 | 5618127 | 7.066424 |
+| 7 | 375 | 34381724 | 5618824 | 7.117627 |
+
+### Load Balance Evidence in MPI Version 2
+
+The second MPI version produced a more balanced distribution by estimated file size. For example, with 8 MPI processes, the estimated size assigned to each rank was very similar, close to 34,381,700 bytes per process. The number of processed tokens was also much more similar than in `mpi1.py`, with all ranks processing approximately 5.62 million tokens.
 
 Compared with `mpi1.py`, the number of tokens per rank became more similar. This indicates that the file-size-based distribution reduced load imbalance.
 
@@ -234,10 +288,10 @@ Compared with `mpi1.py`, the number of tokens per rank became more similar. This
 
 | Processes | MPI 1 Average (s) | MPI 1 Speedup | MPI 1 Efficiency | MPI 2 Average (s) | MPI 2 Speedup | MPI 2 Efficiency |
 |---:|---:|---:|---:|---:|---:|---:|
-| 1 | 28.172390 | 1.07 | 1.07 | 32.504946 | 0.93 | 0.93 |
-| 2 | 14.446589 | 2.09 | 1.05 | 19.566151 | 1.55 | 0.77 |
-| 4 | 10.291162 | 2.94 | 0.74 | 14.511762 | 2.09 | 0.52 |
-| 8 | 8.487803 | 3.57 | 0.45 | 12.619287 | 2.40 | 0.30 |
+| 1 | 26.795114 | 1.00 | 1.00 | 30.002417 | 0.90 | 0.90 |
+| 2 | 14.446540 | 1.86 | 0.93 | 17.130497 | 1.57 | 0.78 |
+| 4 | 10.489258 | 2.56 | 0.64 | 12.695642 | 2.12 | 0.53 |
+| 8 | 8.660748 | 3.10 | 0.39 | 11.670862 | 2.30 | 0.29 |
 
 ## Correctness Check
 
@@ -266,11 +320,11 @@ Total occurrences found: 3,631,778
 
 ### Did the first MPI implementation improve execution time compared to the sequential baseline?
 
-Yes. The sequential baseline execution time was `30.263341` seconds. The first MPI implementation reduced the average execution time to `14.446589` seconds with 2 processes, `10.291162` seconds with 4 processes, and `8.487803` seconds with 8 processes. Therefore, `mpi1.py` achieved a clear performance improvement over the sequential baseline.
+Yes. The sequential baseline execution time was `26.876594` seconds. The first MPI implementation reduced the average execution time to `14.446540` seconds with 2 processes, `10.489258` seconds with 4 processes, and `8.660748` seconds with 8 processes. Therefore, `mpi1.py` achieved a clear performance improvement over the sequential baseline.
 
 ### Was the observed speedup linear?
 
-No. The speedup improved as the number of processes increased, but it was not linear. With 8 processes, the speedup was `3.57`, not close to the ideal speedup of 8. This indicates that the program is affected by overheads such as file I/O, communication, synchronization, and process scheduling.
+No. The speedup improved as the number of processes increased, but it was not linear. With 8 processes, the speedup was `3.10`, not close to the ideal speedup of 8. This indicates that the program is affected by overheads such as file I/O, communication, synchronization, process scheduling, and the use of oversubscription for the 8-process configuration.
 
 ### Is there evidence of load imbalance? How was it observed?
 
@@ -282,7 +336,7 @@ Yes. The second implementation reduced the load imbalance by distributing files 
 
 ### Did the improved distribution strategy produce a real performance improvement?
 
-Not in total execution time. Although `mpi2.py` improved load balance, it did not outperform `mpi1.py`. With 8 processes, `mpi1.py` had an average execution time of `8.487803` seconds, while `mpi2.py` had an average execution time of `12.619287` seconds. The additional cost of calculating file sizes, sorting files, and building a balanced distribution likely increased the total runtime.
+Not in total execution time. Although `mpi2.py` improved load balance, it did not outperform `mpi1.py`. With 8 processes, `mpi1.py` had an average execution time of `8.660748` seconds, while `mpi2.py` had an average execution time of `11.670862` seconds. The additional cost of calculating file sizes, sorting files, and building a balanced distribution likely increased the total runtime.
 
 ### What limitations affected the experiment?
 
@@ -292,7 +346,7 @@ Another limitation is that file size is only an approximation of workload. Altho
 
 ## Conclusions
 
-The parallel implementations produced correct results and matched the sequential baseline output. The first MPI version improved execution time significantly compared to the sequential baseline, especially as the number of processes increased. The best performance was obtained with `mpi1.py` using 8 processes, reaching an average execution time of `8.487803` seconds and a speedup of `3.57`.
+The parallel implementations produced correct results and matched the sequential baseline output. The first MPI version improved execution time significantly compared to the sequential baseline, especially as the number of processes increased. The best performance was obtained with `mpi1.py` using 8 processes, reaching an average execution time of `8.660748` seconds and a speedup of `3.10`.
 
 The main problem observed in `mpi1.py` was load imbalance. Even though each process received the same number of files, the number of tokens processed by each rank was different. This showed that static distribution by file count was not enough to guarantee equal workload.
 
